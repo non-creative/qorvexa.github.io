@@ -430,18 +430,12 @@ body.em .add-cat-row{display:flex}
 .toast{position:fixed;bottom:calc(var(--safe-b) + 20px);left:50%;transform:translateX(-50%) translateY(20px);z-index:200;background:var(--s4);border-radius:var(--r-full);padding:12px 24px;font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 /* ── TIMER PILL ─────────────────────────────────────────────────────── */
-.timer-pill{display:none;position:fixed;bottom:calc(var(--safe-b) + 28px);right:22px;z-index:88;width:64px;height:64px;border-radius:50%;background:var(--accent);color:#fff;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s cubic-bezier(.25,.46,.45,.94),opacity .2s}
+.timer-pill{display:none;position:fixed;bottom:calc(var(--safe-b) + 28px);right:22px;z-index:88;width:64px;height:64px;border-radius:50%;background:var(--accent);color:#fff;align-items:center;justify-content:center;cursor:pointer;transition:transform .2s var(--spring-soft),opacity .2s}
 .timer-pill.show{display:flex;animation:pillSpring .42s cubic-bezier(.34,1.4,.64,1) forwards}
 .timer-pill.hide{animation:pillShrink .22s cubic-bezier(.4,0,1,1) forwards}
 .timer-pill:active{transform:scale(.88)}
 .timer-pill .mi{font-size:30px}
-.timer-pill.running .mi{animation:hourglassSpin 1.8s ease-in-out infinite}
-@keyframes hourglassSpin{
-  0%{transform:rotate(0deg)}
-  45%{transform:rotate(0deg)}
-  55%{transform:rotate(180deg)}
-  100%{transform:rotate(180deg)}
-}
+.hg-svg{width:30px;height:30px;overflow:visible}
 @keyframes pillSpring{
   0%{transform:scale(0) translateY(12px);opacity:0}
   60%{opacity:1}
@@ -856,19 +850,36 @@ function save(){S.updatedAt=new Date().toISOString();saveLocal();supaSave(S);}
 ═══════════════════════════════════════════════════════════════════════ */
 function fmtW(kg){
   const n=parseFloat(kg)||0;
-  if(S.unit==='lbs'){const v=n*2.20462;return(v?parseFloat(v.toFixed(1)):0)+' lbs';}
-  return(n?(n%1===0?n:parseFloat(n.toFixed(2))):0)+' kg';
+  if(S.unit==='lbs'){const v=Math.round(n*2.20462*10)/10;return v+' lbs';}
+  const r=Math.round(n*100)/100;
+  return(r%1===0?r:r.toFixed(2))+' kg';
+}
+// Canonical weight: always stored in kg, rounded to nearest 0.25kg or 0.1lb
+function normalizeKg(kg){
+  const n=parseFloat(kg)||0;
+  if(n<0)return 0;
+  if(S.unit==='lbs'){
+    // Round to nearest 0.5lb (≈0.227kg), stored as kg
+    const lbs=Math.round(n*2.20462*2)/2;
+    return Math.round(lbs/2.20462*1000)/1000;
+  }
+  return Math.round(n*4)/4; // nearest 0.25kg
 }
 function toKg(val){
   const n=parseFloat(val)||0;
-  return S.unit==='lbs'?Math.max(0,Math.round((n/2.20462)*100)/100):Math.max(0,Math.round(n*4)/4);
+  if(n<0)return 0;
+  return S.unit==='lbs'?normalizeKg(n/2.20462):normalizeKg(n);
 }
 function fromKg(kg){
   const n=parseFloat(kg)||0;
-  return S.unit==='lbs'?parseFloat((n*2.20462).toFixed(1)):n;
+  return S.unit==='lbs'?Math.round(n*2.20462*10)/10:Math.round(n*100)/100;
 }
 function smStep(){return S.unit==='lbs'?1:0.25;}
 function bigStep(){return S.unit==='lbs'?5:2.5;}
+// Safe weight step — always goes through normalizeKg
+function stepWeight(kgVal,delta){
+  return normalizeKg(fromKg(kgVal)+delta);
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    PROGRESS LOGIC
@@ -1044,11 +1055,13 @@ function tStart(){
   T.startAt=performance.now();T.running=true;
   cancelAnimationFrame(T.rafId);T.rafId=requestAnimationFrame(tTick);
   haptic([20]);reqWake();updateTimerBtns();updateTimerPill();
+  hgStart();
 }
 function tPause(){
   if(!T.running)return;
   T.base+=performance.now()-T.startAt;T.running=false;
   cancelAnimationFrame(T.rafId);relWake();updateTimerBtns();updateTimerPill();
+  hgStop();
 }
 function tReset(){
   T.running=false;T.base=0;T.startAt=0;T.laps=[];T.lastLapBase=0;
@@ -1056,6 +1069,7 @@ function tReset(){
   const d=$('timerDisp'),c=$('timerCenti');
   if(d)d.textContent='00:00'; if(c)c.textContent='.00';
   updateTimerBtns();updateTimerPill();renderLaps();
+  hgReset();
 }
 function tLap(){
   if(!T.running)return;
@@ -1315,6 +1329,115 @@ function buildBWChart(log,W,H){
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
+   HOURGLASS ANIMATION ENGINE
+═══════════════════════════════════════════════════════════════════════ */
+const HG={cx:12,topY:4.5,botY:19.5,waistT:11.6,waistB:12.4,hw:6.2};
+const hgState={level:1,dir:-1,flip:false,flipProg:0,flipAngle:0,pause:0,rafId:null,
+  drops:[{y:0,speed:.7},{y:.38,speed:.85},{y:.7,speed:.65}]};
+
+function hgTopPath(l){
+  if(l<.002)return`M${HG.cx},${HG.waistT}Z`;
+  const y=(HG.waistT-l*(HG.waistT-HG.topY)).toFixed(2);
+  const w=HG.hw*l;
+  const lx=(HG.cx-w).toFixed(2),rx=(HG.cx+w).toFixed(2);
+  const cx=HG.cx,wt=HG.waistT;
+  // Left side: cubic from corner to apex, CP1 pulled fully to center-x at surface y → strong inward curve
+  // Right: mirror. Top surface: straight line.
+  return`M${lx},${y} C${cx},${y} ${cx},${wt} ${cx},${wt} C${cx},${wt} ${cx},${y} ${rx},${y} L${lx},${y}Z`;
+}
+function hgBotPath(l){
+  if(l<.002)return`M${HG.cx},${HG.waistB}Z`;
+  const y=(HG.waistB+l*(HG.botY-HG.waistB)).toFixed(2);
+  const w=HG.hw*l;
+  const lx=(HG.cx-w).toFixed(2),rx=(HG.cx+w).toFixed(2);
+  const cx=HG.cx,wb=HG.waistB;
+  // From apex: left side curves outward to left corner, straight bottom, right side mirrors
+  return`M${cx},${wb} C${lx},${wb} ${lx},${y} ${lx},${y} L${rx},${y} C${rx},${y} ${rx},${wb} ${cx},${wb}Z`;
+}
+function hgEase(t){return t<.5?4*t*t*t:(t-1)*(2*t-2)*(2*t-2)+1;}
+
+function hgDraw(){
+  const p=$('timerPill');
+  if(!p||p.dataset.icon!=='hourglass_empty')return;
+  const g=p.querySelector('.hg-grp');
+  const topEl=p.querySelector('.hg-top');
+  const botEl=p.querySelector('.hg-bot');
+  if(!g||!topEl||!botEl)return;
+
+  // Rotation
+  let ang=hgState.flipAngle+(hgState.flip?hgEase(hgState.flipProg)*180:0);
+  g.style.transform=`rotate(${ang.toFixed(2)}deg)`;
+
+  // Sand — top polygon uses level, bot uses (1-level).
+  // After 180° flip the SVG rotates so the elements visually swap,
+  // so the same math keeps working — we just reverse drain direction.
+  const lv=hgState.level;
+  topEl.setAttribute('d',hgTopPath(lv));
+  topEl.style.opacity=lv>.002?'1':'0';
+  botEl.setAttribute('d',hgBotPath(1-lv));
+  botEl.style.opacity=(1-lv)>.002?'1':'0';
+
+  // Falling drops through the neck
+  // dir<0 means top draining (lv 1→0): show drops when lv>.05
+  // dir>0 means bot draining (lv 0→1): at 180° the bot polygon is visual-top, so show drops when lv<.95
+  const draining=!hgState.flip&&hgState.pause===0;
+  const hasFlow=draining&&(hgState.dir<0?lv>.05:lv<.95);
+  const gapH=HG.waistB-HG.waistT;
+  for(let i=0;i<3;i++){
+    const d=p.querySelector(`.hg-d${i}`);
+    if(!d)continue;
+    if(hasFlow){
+      d.style.opacity=String(.5+i*.12);
+      d.style.transform=`translateY(${(hgState.drops[i].y*gapH).toFixed(2)}px)`;
+    }else{d.style.opacity='0';}
+  }
+}
+
+function hgTick(){
+  if(!T.running){hgState.rafId=null;hgDraw();return;}
+  const FPS=60;
+
+  if(hgState.flip){
+    hgState.flipProg+=1/(FPS*.38);
+    if(hgState.flipProg>=1){
+      hgState.flip=false;hgState.flipProg=0;
+      hgState.flipAngle=(hgState.flipAngle+180)%360;
+      // Reverse drain direction; set level to the correct start for new direction
+      hgState.dir*=-1;
+      hgState.level=hgState.dir<0?1:0;
+      hgState.drops.forEach((d,i)=>{d.y=i/3;});
+    }
+  } else if(hgState.pause>0){
+    hgState.pause--;
+    if(hgState.pause===0){hgState.flip=true;hgState.flipProg=0;}
+  } else {
+    hgState.level+=hgState.dir/(FPS*2.2);
+    hgState.drops.forEach(d=>{d.y+=d.speed/FPS;if(d.y>1)d.y=0;});
+    // Done draining when level crosses the boundary for this direction
+    if(hgState.dir<0&&hgState.level<=0){
+      hgState.level=0;hgState.pause=Math.round(FPS*.18);
+    } else if(hgState.dir>0&&hgState.level>=1){
+      hgState.level=1;hgState.pause=Math.round(FPS*.18);
+    }
+  }
+
+  hgDraw();
+  hgState.rafId=requestAnimationFrame(hgTick);
+}
+
+function hgStart(){if(!hgState.rafId)hgState.rafId=requestAnimationFrame(hgTick);}
+function hgStop(){
+  if(hgState.rafId){cancelAnimationFrame(hgState.rafId);hgState.rafId=null;}
+  hgDraw();
+}
+function hgReset(){
+  hgStop();
+  Object.assign(hgState,{level:1,dir:-1,flip:false,flipProg:0,flipAngle:0,pause:0});
+  hgState.drops.forEach((d,i)=>{d.y=i/3;});
+  hgDraw();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
    SESSION SHEET
 ═══════════════════════════════════════════════════════════════════════ */
 let sessExId=null,sessWeight=0,sessSets=[],sessEditMode=false;
@@ -1376,16 +1499,16 @@ function updateSessWeight(){
   $('ssWval').textContent=fmtW(sessWeight);
 }
 function applyDefaultWeight(newW,oldW){
-  // Update any set whose weight matches the old default → new default
-  sessSets.forEach(s=>{if(s.w===oldW)s.w=newW;});
-  sessWeight=newW;
+  const nw=normalizeKg(newW);
+  sessSets.forEach(s=>{if(Math.abs(s.w-oldW)<0.001)s.w=nw;});
+  sessWeight=nw;
   updateSessWeight();
   renderSessSets();
 }
-$('wBigDown').addEventListener('click',()=>{const o=sessWeight,n=toKg(Math.max(0,fromKg(o)-bigStep()));applyDefaultWeight(n,o);});
-$('wSmDown').addEventListener('click',()=>{const o=sessWeight,n=toKg(Math.max(0,fromKg(o)-smStep()));applyDefaultWeight(n,o);});
-$('wSmUp').addEventListener('click',()=>{const o=sessWeight,n=toKg(fromKg(o)+smStep());applyDefaultWeight(n,o);});
-$('wBigUp').addEventListener('click',()=>{const o=sessWeight,n=toKg(fromKg(o)+bigStep());applyDefaultWeight(n,o);});
+$('wBigDown').addEventListener('click',()=>{const o=sessWeight,n=stepWeight(o,-bigStep());applyDefaultWeight(n,o);});
+$('wSmDown').addEventListener('click',()=>{const o=sessWeight,n=stepWeight(o,-smStep());applyDefaultWeight(n,o);});
+$('wSmUp').addEventListener('click',()=>{const o=sessWeight,n=stepWeight(o,+smStep());applyDefaultWeight(n,o);});
+$('wBigUp').addEventListener('click',()=>{const o=sessWeight,n=stepWeight(o,+bigStep());applyDefaultWeight(n,o);});
 $('ssWval').addEventListener('click',()=>{
   openWeightInput(sessWeight,val=>{applyDefaultWeight(val,sessWeight);});
 });
@@ -1402,7 +1525,7 @@ function renderSessSets(){
     const wchip=el('button','set-w');wchip.textContent=fmtW(set.w);
     wchip.addEventListener('click',e=>{
       e.stopPropagation();
-      openWeightInput(set.w,val=>{sessSets[i].w=val;renderSessSets();});
+      openWeightInput(set.w,val=>{sessSets[i].w=normalizeKg(val);renderSessSets();});
     });
     // Reps control
     const ctrl=el('div','reps-ctrl');
@@ -1439,8 +1562,8 @@ $('ssAddSet').addEventListener('click',()=>{
 });
 $('ssSave').addEventListener('click',()=>{
   const ex=AP().exs.find(e=>e.id===sessExId);if(!ex)return;
-  const valid=sessSets.filter(s=>s.r>0);if(!valid.length){$('sessOverlay').classList.remove('open');return;}
-  // Store top weight on ex.w for quick display
+  const valid=sessSets.filter(s=>s.r>0).map(s=>({w:normalizeKg(s.w),r:Math.max(1,Math.min(30,Math.round(s.r)))}));
+  if(!valid.length){$('sessOverlay').classList.remove('open');return;}
   ex.w=valid.reduce((m,s)=>s.w>m?s.w:m,0);
   if(sessEditMode&&ex.history.length){
     ex.history[ex.history.length-1]={...ex.history[ex.history.length-1],w:ex.w,sets:valid.map(s=>({w:s.w,r:s.r}))};
@@ -1560,28 +1683,57 @@ function goToExercises(){
   }
 }
 
+function pillIcon(icon){
+  if(icon==='hourglass_empty'){
+    return`<svg class="hg-svg" viewBox="0 0 24 24" fill="none">
+      <g class="hg-grp" style="transform-origin:12px 12px">
+        <line x1="5.5" y1="4.5" x2="18.5" y2="4.5" stroke="rgba(255,255,255,.92)" stroke-width="2" stroke-linecap="round"/>
+        <line x1="5.5" y1="19.5" x2="18.5" y2="19.5" stroke="rgba(255,255,255,.92)" stroke-width="2" stroke-linecap="round"/>
+        <path d="M6 4.5 C7 8.5 11 11 11.8 11.6 C12.6 11 17 8.5 18 4.5" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.1" stroke-linecap="round"/>
+        <path d="M6 19.5 C7 15.5 11 13 11.8 12.4 C12.6 13 17 15.5 18 19.5" fill="none" stroke="rgba(255,255,255,.28)" stroke-width="1.1" stroke-linecap="round"/>
+        <path class="hg-top" fill="rgba(255,255,255,.88)"/>
+        <path class="hg-bot" fill="rgba(255,255,255,.88)" style="opacity:0"/>
+        <circle class="hg-d0" cx="12" cy="11.6" r="0.5" fill="rgba(255,255,255,.85)" style="opacity:0"/>
+        <circle class="hg-d1" cx="12" cy="11.6" r="0.4" fill="rgba(255,255,255,.72)" style="opacity:0"/>
+        <circle class="hg-d2" cx="12" cy="11.6" r="0.45" fill="rgba(255,255,255,.78)" style="opacity:0"/>
+      </g>
+    </svg>`;
+  }
+  return`<span class="mi">${icon}</span>`;
+}
+
 function pillShow(icon){
   const p=$('timerPill');if(!p)return;
-  if(p.classList.contains('show')&&p.dataset.icon===icon)return;
+  if(p.classList.contains('show')&&p.dataset.icon===icon){
+    // Already showing right icon — just ensure anim state is correct
+    if(icon==='hourglass_empty'){T.running?hgStart():hgStop();}
+    return;
+  }
+  const afterShow=()=>{
+    if(icon==='hourglass_empty'){
+      hgDraw();
+      if(T.running)hgStart(); else hgStop();
+    } else {
+      hgStop();
+    }
+  };
   if(p.classList.contains('show')){
     p.classList.add('hide');
     setTimeout(()=>{
-      p.classList.remove('show','hide');
-      p.style.display='';
-      p.innerHTML=`<span class="mi">${icon}</span>`;
-      p.dataset.icon=icon;
-      p.style.display='flex';
-      p.classList.add('show');
+      p.classList.remove('show','hide');p.style.display='';
+      p.innerHTML=pillIcon(icon);p.dataset.icon=icon;
+      p.style.display='flex';p.classList.add('show');
+      afterShow();
     },220);
   } else {
-    p.innerHTML=`<span class="mi">${icon}</span>`;
-    p.dataset.icon=icon;
-    p.style.display='flex';
-    p.classList.add('show');
+    p.innerHTML=pillIcon(icon);p.dataset.icon=icon;
+    p.style.display='flex';p.classList.add('show');
+    afterShow();
   }
 }
 function pillHide(){
   const p=$('timerPill');if(!p||!p.classList.contains('show'))return;
+  hgStop();
   p.classList.add('hide');
   setTimeout(()=>{p.classList.remove('show','hide');p.style.display='';},220);
 }
@@ -1591,13 +1743,12 @@ function updateTimerPill(){
 
   // Rest countdown takes top priority
   if(R.active){
+    hgStop();
     const rem=Math.max(0,R.endsAt-Date.now());
     const txt=restFmt(rem);
-    p.classList.remove('running');
     if(!p.classList.contains('show')){
       p.innerHTML=`<span style="font-size:17px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums">${txt}</span>`;
-      p.dataset.icon='rest';
-      p.style.display='flex';p.classList.add('show');
+      p.dataset.icon='rest';p.style.display='flex';p.classList.add('show');
     } else if(p.dataset.icon==='rest'){
       const sp=p.querySelector('span');if(sp)sp.textContent=txt;
     } else {
@@ -1611,18 +1762,17 @@ function updateTimerPill(){
     return;
   }
 
-  // Always visible — show hourglass on exercise screen, dumbbell on timer screen
   if(showTimer){
-    p.classList.remove('running');
     pillShow('fitness_center');
   } else {
-    // Hourglass — spin it when timer is actually running
-    if(T.running){p.classList.add('running');}else{p.classList.remove('running');}
     pillShow('hourglass_empty');
   }
 }
 
+function closeSettings(){$('sp').classList.remove('open');}
+
 $('timerPill').addEventListener('click',()=>{
+  closeSettings();
   if(R.active){goToExercises();return;}
   if(showTimer){goToExercises();}else{goToTimer();}
 });
@@ -1935,34 +2085,40 @@ function buildDayChart(exs,W,H){
   const dates=[...dateSet].sort().slice(-12);
   if(!dates.length)return null;
 
-  // Y range: use top weight per session (handles per-set weights)
+  // Y range: use rep-adjusted effective weight so reps bump the line up/down
+  const repMid=(S.repMin+S.repMax)/2;
+  function effectiveW(h){
+    const w=fromKg(sessionMaxW(h));
+    const avgR=h.sets.reduce((s,set)=>s+normSet(set,h.w).r,0)/(h.sets.length||1);
+    return w*(1+(avgR-repMid)*0.025);
+  }
   let yMin=Infinity,yMax=-Infinity;
   active.forEach(ex=>ex.history.forEach(h=>{
-    const v=fromKg(sessionMaxW(h));if(v<yMin)yMin=v;if(v>yMax)yMax=v;
+    const v=effectiveW(h);if(v<yMin)yMin=v;if(v>yMax)yMax=v;
   }));
   if(yMin===yMax){yMin=Math.max(0,yMin-5);yMax=yMax+5;}
   const yRange=yMax-yMin||1;
 
   const PAD={t:8,r:8,b:32,l:36};
   const cW=W-PAD.l-PAD.r, cH=H-PAD.t-PAD.b;
-  const xStep=dates.length>1?cW/(dates.length-1):cW/2;
 
   function px(di){return PAD.l+(di/(Math.max(dates.length-1,1)))*cW;}
   function py(v){return PAD.t+cH-(((v-yMin)/yRange)*cH);}
 
   let svg=`<svg width="100%" viewBox="0 0 ${W} ${H}" style="display:block;overflow:visible" preserveAspectRatio="none">`;
 
-  // Grid lines (3 horizontal)
+  // Grid lines (3 horizontal) — label with raw weight values
   for(let i=0;i<=2;i++){
     const y=PAD.t+(cH/2)*i;
-    const val=(yMin+yRange*(1-i/2)).toFixed(1);
+    const val=(fromKg(sessionMaxW({sets:[],w:0}))||yMin+yRange*(1-i/2)).toFixed(1);
+    const rawVal=(yMin+yRange*(1-i/2)).toFixed(1);
     svg+=`<line x1="${PAD.l}" y1="${y}" x2="${PAD.l+cW}" y2="${y}" stroke="var(--div)" stroke-width="1"/>`;
-    svg+=`<text x="${PAD.l-4}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--t3)" font-family="-apple-system,sans-serif">${val}</text>`;
+    svg+=`<text x="${PAD.l-4}" y="${y+4}" text-anchor="end" font-size="10" fill="var(--t3)" font-family="-apple-system,sans-serif">${rawVal}</text>`;
   }
 
-  // X axis labels (show first, middle, last)
+  // X axis labels
   [0,Math.floor((dates.length-1)/2),dates.length-1].filter((v,i,a)=>a.indexOf(v)===i).forEach(di=>{
-    const label=dates[di]?dates[di].slice(5):''; // MM-DD
+    const label=dates[di]?dates[di].slice(5):'';
     svg+=`<text x="${px(di)}" y="${H-4}" text-anchor="middle" font-size="10" fill="var(--t3)" font-family="-apple-system,sans-serif">${label}</text>`;
   });
 
@@ -1972,20 +2128,23 @@ function buildDayChart(exs,W,H){
     ex.history.forEach(h=>{
       const di=dates.indexOf(h.date.slice(0,10));
       if(di<0)return;
-      const wv=fromKg(sessionMaxW(h));
-      const avgR=Math.round(h.sets.reduce((s,set)=>s+normSet(set,h.w).r,0)/(h.sets.length||1));
-      wPts.push({x:px(di),y:py(wv),v:wv,r:avgR});
+      const ev=effectiveW(h);
+      wPts.push({x:px(di),y:py(ev),v:fromKg(sessionMaxW(h))});
     });
     if(!wPts.length)return;
-    // Weight line
+    // Smooth curve line
     if(wPts.length>1){
-      const d=wPts.map((p,i)=>i===0?`M${p.x.toFixed(1)},${p.y.toFixed(1)}`:`L${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+      let d=`M${wPts[0].x.toFixed(1)},${wPts[0].y.toFixed(1)}`;
+      for(let i=1;i<wPts.length;i++){
+        const p0=wPts[i-1],p1=wPts[i];
+        const cpx=(p0.x+p1.x)/2;
+        d+=` C${cpx.toFixed(1)},${p0.y.toFixed(1)} ${cpx.toFixed(1)},${p1.y.toFixed(1)} ${p1.x.toFixed(1)},${p1.y.toFixed(1)}`;
+      }
       svg+=`<path d="${d}" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>`;
     }
-    // Dots + reps label above each dot
+    // Dots
     wPts.forEach(p=>{
       svg+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="${color}" stroke="var(--s1)" stroke-width="1.5"/>`;
-      svg+=`<text x="${p.x.toFixed(1)}" y="${(p.y-8).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="600" fill="${color}" opacity="0.75" font-family="-apple-system,sans-serif">${p.r}r</text>`;
     });
   });
 
