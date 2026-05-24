@@ -138,6 +138,59 @@ input,select{font-family:inherit}
 .sec-collapse-btn:active{background:var(--s3);transform:scale(.85)}
 .sec-collapse-btn .mi{transition:transform .32s var(--spring)}
 .sec-collapse-btn.open .mi{transform:rotate(180deg)}
+/* ── LANDSCAPE SPLIT VIEW ────────────────────────────────────────────── */
+.ls-ov{display:none;position:fixed;inset:0;z-index:150;background:var(--bg);flex-direction:row;overflow:hidden}
+.ls-left{width:42%;display:flex;flex-direction:column;border-right:1px solid var(--div);overflow:hidden}
+.ls-right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.ls-hdr{display:flex;align-items:center;padding:9px 12px;gap:8px;border-bottom:1px solid var(--div);flex-shrink:0}
+.ls-title{flex:1;font-family:'Montserrat',sans-serif;font-weight:700;font-size:15px}
+.ls-hbtn{width:32px;height:32px;border-radius:var(--r-full);background:var(--s2);color:var(--t2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background var(--dur)}
+.ls-hbtn:active{background:var(--s3)}
+.ls-days{display:flex;gap:5px;padding:7px 10px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;border-bottom:1px solid var(--div)}
+.ls-days::-webkit-scrollbar{display:none}
+.ls-day-pill{flex-shrink:0;padding:5px 13px;border-radius:var(--r-full);background:var(--accent-xs);color:var(--t2);font-size:12px;font-weight:600;transition:all var(--dur)}
+.ls-day-pill.active{background:var(--accent);color:#fff}
+.ls-ex-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px}
+.ls-cat-hdr{padding:8px 12px 3px;font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--label)}
+.ls-ex-row{display:flex;align-items:center;padding:7px 12px;gap:8px;cursor:pointer;border-radius:var(--r-lg);margin:0 5px;transition:background var(--dur)}
+.ls-ex-row:active,.ls-ex-row.active{background:var(--accent-s)}
+.ls-ex-info{flex:1;min-width:0}
+.ls-ex-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ls-ex-last{font-size:10px;color:var(--t3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ls-ex-badge{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-s);border-radius:var(--r-full);padding:3px 9px;flex-shrink:0}
+.ls-ex-badge.ready{color:var(--green);background:var(--green-s)}
+.ls-rtabs{display:flex;padding:7px 10px;gap:5px;border-bottom:1px solid var(--div);flex-shrink:0}
+.ls-rtab{flex:1;padding:6px;border-radius:var(--r-lg);font-size:12px;font-weight:600;color:var(--t2);background:var(--accent-xs);transition:all var(--dur)}
+.ls-rtab.active{background:var(--accent);color:#fff}
+.ls-session{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:7px}
+.ls-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:var(--t3);font-size:12px;text-align:center;padding:16px}
+.ls-wrow{display:flex;align-items:center;gap:5px;background:var(--s1);border-radius:var(--r-lg);padding:7px 10px}
+.ls-wlbl{font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--t3);margin-bottom:1px}
+.ls-wval{font-size:20px;font-weight:800;color:var(--text);letter-spacing:-1px;cursor:pointer;padding:2px 5px;border-radius:var(--r-sm);transition:background var(--dur)}
+.ls-wval:active{background:var(--s3)}
+.ls-wbtn{width:30px;height:30px;border-radius:var(--r-full);background:var(--s2);color:var(--t2);display:flex;align-items:center;justify-content:center;transition:background var(--dur)}
+.ls-wbtn:active{background:var(--s3)}
+.ls-sets{display:flex;flex-direction:column;gap:4px}
+.ls-set-row{display:flex;align-items:center;gap:6px;background:var(--s1);border-radius:var(--r-lg);padding:6px 9px}
+.ls-set-num{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--t3);width:24px;flex-shrink:0}
+.ls-set-w{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-s);border-radius:var(--r-sm);padding:3px 7px;cursor:pointer;flex-shrink:0}
+.ls-reps{display:flex;align-items:center;gap:5px;flex:1;justify-content:center}
+.ls-rbtn{width:26px;height:26px;border-radius:50%;background:var(--s2);color:var(--text);display:flex;align-items:center;justify-content:center}
+.ls-rbtn:active{background:var(--s3)}
+.ls-rnum{font-size:18px;font-weight:800;min-width:28px;text-align:center;letter-spacing:-1px}
+.ls-rnum.ok{color:var(--accent)}.ls-rnum.hit{color:var(--green)}
+.ls-rdel{width:22px;height:22px;border-radius:50%;background:var(--red-s);color:var(--red);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ls-add{display:flex;align-items:center;justify-content:center;gap:5px;padding:9px;background:var(--s2);border-radius:var(--r-lg);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;transition:background var(--dur)}
+.ls-add:active{background:var(--accent-s)}
+.ls-save{padding:12px;border-radius:var(--r-full);background:var(--accent);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;transition:transform .2s var(--spring),opacity var(--dur);flex-shrink:0}
+.ls-save:active{transform:scale(.96);opacity:.9}
+.ls-timer{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.ls-timer-disp{font-size:48px;font-weight:800;letter-spacing:-3px;font-variant-numeric:tabular-nums;line-height:1}
+.ls-timer-cent{font-size:20px;font-weight:600;color:var(--t2);letter-spacing:-1px}
+.ls-timer-btns{display:flex;gap:10px;margin-top:4px}
+.ls-tbtn{width:46px;height:46px;border-radius:50%;background:var(--s2);color:var(--text);display:flex;align-items:center;justify-content:center;transition:transform .18s var(--spring)}
+.ls-tbtn:active{transform:scale(.86)}
+.ls-tbtn.pri{background:var(--accent);color:#fff;width:54px;height:54px}
 /* ── EDIT BANNER ENTER ───────────────────────────────────────────────── */
 body.em .edit-banner{animation:fadeUp .3s var(--spring)}
 .edit-banner{display:none;text-align:center;background:var(--amber-s);padding:10px;font-size:12px;font-weight:700;letter-spacing:.4px;color:var(--amber)}
@@ -656,6 +709,7 @@ body.em .add-cat-row{display:flex}
 </div>
 
 <!-- FLOATING PILL (timer ↔ exercise) -->
+<div id="lsOv" class="ls-ov"></div>
 <button class="timer-pill" id="timerPill"></button>
 <div class="toast" id="toast"></div>
 <input type="file" id="importFile" accept=".json" aria-hidden="true" tabindex="-1"
@@ -1054,7 +1108,7 @@ function tStart(){
   if(T.running)return;
   T.startAt=performance.now();T.running=true;
   cancelAnimationFrame(T.rafId);T.rafId=requestAnimationFrame(tTick);
-  haptic([20]);reqWake();updateTimerBtns();updateTimerPill();
+  haptic([40]);reqWake();updateTimerBtns();updateTimerPill();
   hgStart();
 }
 function tPause(){
@@ -1151,10 +1205,10 @@ function renderTimerScreen(container){
   });
   if(T.laps.length)renderLaps();
   if(feat('restTimer')){
-    $('restMinDown').addEventListener('click',()=>{S.restMins=Math.max(0,S.restMins-1);$('restMinVal').textContent=S.restMins;save();haptic([6]);});
-    $('restMinUp').addEventListener('click',()=>{S.restMins=Math.min(10,S.restMins+1);$('restMinVal').textContent=S.restMins;save();haptic([6]);});
-    $('restSecDown').addEventListener('click',()=>{S.restSecs=Math.max(0,(S.restSecs??30)-5);$('restSecVal').textContent=String(S.restSecs).padStart(2,'0');save();haptic([6]);});
-    $('restSecUp').addEventListener('click',()=>{S.restSecs=Math.min(55,(S.restSecs??30)+5);$('restSecVal').textContent=String(S.restSecs).padStart(2,'0');save();haptic([6]);});
+    $('restMinDown').addEventListener('click',()=>{S.restMins=Math.max(0,S.restMins-1);$('restMinVal').textContent=S.restMins;save();haptic([28]);});
+    $('restMinUp').addEventListener('click',()=>{S.restMins=Math.min(10,S.restMins+1);$('restMinVal').textContent=S.restMins;save();haptic([28]);});
+    $('restSecDown').addEventListener('click',()=>{S.restSecs=Math.max(0,(S.restSecs??30)-5);$('restSecVal').textContent=String(S.restSecs).padStart(2,'0');save();haptic([28]);});
+    $('restSecUp').addEventListener('click',()=>{S.restSecs=Math.min(55,(S.restSecs??30)+5);$('restSecVal').textContent=String(S.restSecs).padStart(2,'0');save();haptic([28]);});
   }
   if(R.active)renderRestActive(container.querySelector('.timer-screen'));
 }
@@ -1182,7 +1236,11 @@ $('wInputField').addEventListener('keydown',e=>{if(e.key==='Enter')closeWeightIn
 /* ═══════════════════════════════════════════════════════════════════════
    HAPTIC
 ═══════════════════════════════════════════════════════════════════════ */
-function haptic(p=[10]){try{if(S.features?.haptic!==false)navigator.vibrate&&navigator.vibrate(p);}catch(e){}}
+function haptic(p=[30]){
+  if(S.features?.haptic===false)return;
+  try{navigator.vibrate&&navigator.vibrate(p);}catch(e){}
+}
+function feat(k){return S.features?.[k]!==false;}
 function feat(k){return S.features?.[k]!==false;}
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1194,7 +1252,7 @@ function startRest(){
   if(!feat('restTimer')||restTotal()===0)return;
   cancelAnimationFrame(R.rafId);
   R.active=true;R.endsAt=Date.now()+restTotal();
-  haptic([30]);
+  haptic([50]);
   R.rafId=requestAnimationFrame(restTick);
   updateTimerPill();
   // Refresh timer screen if open
@@ -1213,7 +1271,7 @@ function restTick(){
   const rem=R.endsAt-Date.now();
   if(rem<=0){
     R.active=false;
-    haptic([80,50,80,50,120]);
+    haptic([90,60,90,60,130]);
     showToast('Rest done — next set! 💪');
     updateTimerPill();
     const ts=document.querySelector('.timer-screen');
@@ -1536,8 +1594,8 @@ function renderSessSets(){
     const vhint=el('div','reps-hint');
     setRepsState(vnum,vhint,set.r);
     vwrap.appendChild(vnum);vwrap.appendChild(vhint);
-    down.addEventListener('click',()=>{sessSets[i].r=Math.max(1,sessSets[i].r-1);setRepsState(vnum,vhint,sessSets[i].r);haptic([6]);});
-    up.addEventListener('click',()=>{sessSets[i].r=Math.min(30,sessSets[i].r+1);setRepsState(vnum,vhint,sessSets[i].r);haptic([6]);});
+    down.addEventListener('click',()=>{sessSets[i].r=Math.max(1,sessSets[i].r-1);setRepsState(vnum,vhint,sessSets[i].r);haptic([28]);});
+    up.addEventListener('click',()=>{sessSets[i].r=Math.min(30,sessSets[i].r+1);setRepsState(vnum,vhint,sessSets[i].r);haptic([28]);});
     ctrl.appendChild(down);ctrl.appendChild(vwrap);ctrl.appendChild(up);
     const del=el('button','set-del');del.innerHTML=mi('delete');
     del.addEventListener('click',()=>{sessSets.splice(i,1);renderSessSets();});
@@ -1574,7 +1632,7 @@ $('ssSave').addEventListener('click',()=>{
     if(ex.history.length>50)ex.history=ex.history.slice(-50);
     save();render();$('sessOverlay').classList.remove('open');
     showToast(valid.every(s=>s.r>=S.repMax)?`All ${S.repMax}s! Time to increase 💪`:'Session saved');
-    haptic([15,30,15]);
+    haptic([35,25,35]);
     startRest();
   }
 });
@@ -1778,6 +1836,8 @@ $('timerPill').addEventListener('click',()=>{
 });
 
 function render(onComplete){
+  if(isLandscape()){renderLandscape();if(onComplete)onComplete();return;}
+  lsHide();
   const lbl=$('planDaysLabel');
   if(lbl)lbl.textContent=AP().name;
   updateTimerPill();
@@ -1822,7 +1882,7 @@ function renderTabs(){
     b.addEventListener('click',()=>{AP().activeDay=day.id;showTimer=false;showCharts=false;save();render();});
     // Long-press to rename
     let lpt=null;
-    b.addEventListener('touchstart',()=>{lpt=setTimeout(()=>{haptic([30,20,30]);openTxt('Rename Day',day.name,'',v=>{day.name=v;save();render();});},600);},{passive:true});
+    b.addEventListener('touchstart',()=>{lpt=setTimeout(()=>{haptic([50,30,50]);openTxt('Rename Day',day.name,'',v=>{day.name=v;save();render();});},600);},{passive:true});
     b.addEventListener('touchend',()=>clearTimeout(lpt));
     b.addEventListener('touchmove',()=>clearTimeout(lpt));
     days.appendChild(b);
@@ -1871,7 +1931,7 @@ function renderContent(){
     colBtn.innerHTML=mi('expand_more');
     colBtn.addEventListener('click',e2=>{
       e2.stopPropagation();
-      haptic([6]);
+      haptic([28]);
       const isCollapsed=collapsedCats.has(cat.id);
       if(isCollapsed){
         collapsedCats.delete(cat.id);
@@ -2369,10 +2429,9 @@ function renderSettings(){
     if(i>0)row.style.borderTop='1px solid var(--div)';
     const tog=mkToggle(feat(f.k),v=>{
       S.features[f.k]=v;
-      // If disabling rest timer, stop any active rest
       if(f.k==='restTimer'&&!v)stopRest();
-      // If disabling charts while on that tab, go back to exercises
       if(f.k==='progressCharts'&&!v&&showCharts){showCharts=false;}
+      if(f.k==='haptic'&&v){S.features.haptic=true;haptic([40]);}
       save();render();renderSettings();
     });
     row.appendChild(tog);
@@ -2509,7 +2568,7 @@ function mkToggle(on,onChange){
   track.addEventListener('click',()=>{
     const next=!track.classList.contains('on');
     track.classList.toggle('on',next);
-    haptic([8]);onChange(next);
+    haptic([28]);onChange(next);
   });
   return track;
 }
@@ -2636,8 +2695,232 @@ function applyCloudData(cloud){
   return true;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   LANDSCAPE SPLIT VIEW
+═══════════════════════════════════════════════════════════════════════ */
+let lsExId=null,lsRightMode='timer',lsSets=[],lsWeight=0;
+
+function isLandscape(){
+  return window.innerWidth>window.innerHeight&&window.innerHeight<560;
+}
+
+function lsHide(){
+  const ov=$('lsOv');if(ov)ov.style.display='none';
+  const pill=$('timerPill');if(pill)pill.style.removeProperty('display');
+}
+function lsShow(){
+  const pill=$('timerPill');if(pill)pill.style.display='none';
+}
+
+function renderLandscape(){
+  if(!isLandscape()){lsHide();return;}
+  lsShow();
+  const ov=$('lsOv');ov.style.display='flex';ov.innerHTML='';
+
+  // ── LEFT PANEL ──────────────────────────────────────────────
+  const left=el('div','ls-left');
+
+  // Header
+  const hdr=el('div','ls-hdr');
+  const ttl=el('div','ls-title');ttl.textContent='Qorvexa';
+  const settBtn=el('button','ls-hbtn');settBtn.innerHTML=mi('settings');
+  settBtn.addEventListener('click',()=>{renderSettings();$('sp').classList.add('open');});
+  hdr.appendChild(ttl);hdr.appendChild(settBtn);left.appendChild(hdr);
+
+  // Day pills
+  const days=el('div','ls-days');
+  AP().days.forEach(d=>{
+    const b=el('button','ls-day-pill'+(d.id===AP().activeDay?' active':''));
+    b.textContent=d.name;
+    b.addEventListener('click',()=>{AP().activeDay=d.id;save();renderLandscape();});
+    days.appendChild(b);
+  });
+  left.appendChild(days);
+
+  // Exercise list
+  const list=el('div','ls-ex-list');
+  const day=AP().days.find(d=>d.id===AP().activeDay);
+  if(day){
+    AP().cats.filter(c=>c.dayId===day.id).forEach(cat=>{
+      const ch=el('div','ls-cat-hdr');ch.textContent=cat.name;list.appendChild(ch);
+      AP().exs.filter(e=>e.catId===cat.id).forEach(ex=>{
+        const row=el('div','ls-ex-row'+(ex.id===lsExId?' active':''));
+        const info=el('div','ls-ex-info');
+        const nm=el('div','ls-ex-name');nm.textContent=ex.name;
+        const last=el('div','ls-ex-last');last.textContent=lastLabel(ex)||'No sessions yet';
+        info.appendChild(nm);info.appendChild(last);
+        const badge=el('div','ls-ex-badge'+(isReady(ex)?' ready':''));
+        badge.textContent=fmtW(ex.w);
+        row.appendChild(info);row.appendChild(badge);
+        row.addEventListener('click',()=>{
+          lsExId=ex.id;lsRightMode='session';
+          // Seed session state
+          lsWeight=ex.w;
+          const last2=ex.history?.filter(h=>!isToday(h.date)).at(-1);
+          lsSets=last2?last2.sets.map(s=>({...normSet(s,last2.w)})):[{w:lsWeight,r:S.repMin},{w:lsWeight,r:S.repMin},{w:lsWeight,r:S.repMin}];
+          haptic([28]);
+          renderLandscape();
+        });
+        list.appendChild(row);
+      });
+    });
+  }
+  left.appendChild(list);
+  ov.appendChild(left);
+
+  // ── RIGHT PANEL ─────────────────────────────────────────────
+  const right=el('div','ls-right');
+
+  // Tab bar
+  const rtabs=el('div','ls-rtabs');
+  ['session','timer'].forEach(t=>{
+    const b=el('button','ls-rtab'+(lsRightMode===t?' active':''));
+    b.textContent=t==='session'?(lsExId?AP().exs.find(e=>e.id===lsExId)?.name||'Session':'Session'):'Timer';
+    b.addEventListener('click',()=>{lsRightMode=t;renderLandscape();});
+    rtabs.appendChild(b);
+  });
+  right.appendChild(rtabs);
+
+  if(lsRightMode==='session'){
+    renderLsSession(right);
+  } else {
+    renderLsTimer(right);
+  }
+  ov.appendChild(right);
+}
+
+function renderLsSession(right){
+  if(!lsExId){
+    const empty=el('div','ls-empty');
+    empty.innerHTML=`${mi('fitness_center')}<span>Tap an exercise to log a set</span>`;
+    right.appendChild(empty);return;
+  }
+  const ex=AP().exs.find(e=>e.id===lsExId);if(!ex)return;
+  const wrap=el('div','ls-session');
+
+  // Weight row
+  const wrow=el('div','ls-wrow');
+  const winfo=el('div','');winfo.style.cssText='flex:1;min-width:0';
+  const wlbl=el('div','ls-wlbl');wlbl.textContent='Default Weight';
+  const wval=el('div','ls-wval');wval.textContent=fmtW(lsWeight);
+  winfo.appendChild(wlbl);winfo.appendChild(wval);
+  const wd=el('button','ls-wbtn');wd.innerHTML=mi('remove');
+  const wu=el('button','ls-wbtn');wu.innerHTML=mi('add');
+  const wbig_d=el('button','ls-wbtn');wbig_d.innerHTML=mi('keyboard_double_arrow_down');
+  const wbig_u=el('button','ls-wbtn');wbig_u.innerHTML=mi('keyboard_double_arrow_up');
+  const lsStep=(n)=>{const o=lsWeight,nw=stepWeight(lsWeight,n);lsWeight=nw;lsSets.forEach(s=>{if(Math.abs(s.w-o)<0.001)s.w=nw;});wval.textContent=fmtW(lsWeight);renderLsSets(setsWrap);haptic([28]);};
+  wd.addEventListener('click',()=>lsStep(-smStep()));
+  wu.addEventListener('click',()=>lsStep(+smStep()));
+  wbig_d.addEventListener('click',()=>lsStep(-bigStep()));
+  wbig_u.addEventListener('click',()=>lsStep(+bigStep()));
+  wval.addEventListener('click',()=>openWeightInput(lsWeight,v=>{const o=lsWeight;lsWeight=normalizeKg(v);lsSets.forEach(s=>{if(Math.abs(s.w-o)<0.001)s.w=lsWeight;});wval.textContent=fmtW(lsWeight);renderLsSets(setsWrap);haptic([28]);}));
+  wrow.appendChild(wbig_d);wrow.appendChild(wd);wrow.appendChild(winfo);wrow.appendChild(wu);wrow.appendChild(wbig_u);
+  wrap.appendChild(wrow);
+
+  // Set rows
+  const setsWrap=el('div','ls-sets');
+  renderLsSets(setsWrap);
+  wrap.appendChild(setsWrap);
+
+  // Add set
+  const addBtn=el('button','ls-add');addBtn.innerHTML=mi('add')+' Add Set';
+  addBtn.addEventListener('click',()=>{
+    const last=lsSets[lsSets.length-1];
+    lsSets.push({w:last?.w??lsWeight,r:last?.r??S.repMin});
+    renderLsSets(setsWrap);haptic([28]);
+  });
+  wrap.appendChild(addBtn);
+
+  // Save
+  const saveBtn=el('button','ls-save');saveBtn.innerHTML=mi('check')+' Save Session';
+  saveBtn.addEventListener('click',()=>{
+    const valid=lsSets.filter(s=>s.r>0).map(s=>({w:normalizeKg(s.w),r:Math.max(1,Math.min(30,Math.round(s.r)))}));
+    if(!valid.length)return;
+    ex.w=valid.reduce((m,s)=>s.w>m?s.w:m,0);
+    ex.history.push({date:new Date().toISOString(),w:ex.w,sets:valid});
+    if(ex.history.length>50)ex.history=ex.history.slice(-50);
+    save();
+    haptic([35,25,35]);
+    showToast(valid.every(s=>s.r>=S.repMax)?`All ${S.repMax}s! 💪`:'Session saved');
+    startRest();
+    lsExId=null;lsRightMode='timer';
+    renderLandscape();
+  });
+  wrap.appendChild(saveBtn);
+  right.appendChild(wrap);
+}
+
+function renderLsSets(container){
+  container.innerHTML='';
+  lsSets.forEach((set,i)=>{
+    const row=el('div','ls-set-row');
+    const num=el('div','ls-set-num');num.textContent='Set '+(i+1);
+    const sw=el('button','ls-set-w');sw.textContent=fmtW(set.w);
+    sw.addEventListener('click',()=>openWeightInput(set.w,v=>{lsSets[i].w=normalizeKg(v);renderLsSets(container);}));
+    const reps=el('div','ls-reps');
+    const rd=el('button','ls-rbtn');rd.innerHTML=mi('remove');
+    const rn=el('div','ls-rnum');
+    const ru=el('button','ls-rbtn');ru.innerHTML=mi('add');
+    const setRep=(r)=>{
+      lsSets[i].r=r;
+      rn.textContent=r;
+      rn.className='ls-rnum'+(r>=S.repMax?' hit':r>=S.repMin?' ok':'');
+      haptic([28]);
+    };
+    setRep(set.r);
+    rd.addEventListener('click',()=>setRep(Math.max(1,lsSets[i].r-1)));
+    ru.addEventListener('click',()=>setRep(Math.min(30,lsSets[i].r+1)));
+    reps.appendChild(rd);reps.appendChild(rn);reps.appendChild(ru);
+    const del=el('button','ls-rdel');del.innerHTML=mi('delete');
+    del.addEventListener('click',()=>{lsSets.splice(i,1);renderLsSets(container);});
+    row.appendChild(num);row.appendChild(sw);row.appendChild(reps);row.appendChild(del);
+    container.appendChild(row);
+  });
+}
+
+function renderLsTimer(right){
+  const wrap=el('div','ls-timer');
+  const disp=el('div','ls-timer-disp');disp.id='lsTimerDisp';
+  const cent=el('div','ls-timer-cent');cent.id='lsTimerCent';
+  const updateLsTimer=()=>{
+    const e=tNow();
+    disp.textContent=tFmt(e);
+    cent.textContent=tCentis(e);
+    if(T.running)requestAnimationFrame(updateLsTimer);
+  };
+  updateLsTimer();
+  if(T.running)requestAnimationFrame(updateLsTimer);
+  const btns=el('div','ls-timer-btns');
+  const lap=el('button','ls-tbtn');lap.innerHTML=mi(T.running?'flag':T.base>0?'replay':'flag');
+  lap.disabled=(!T.running&&T.base===0);
+  const play=el('button','ls-tbtn pri');play.innerHTML=mi(T.running?'pause':'play_arrow');
+  play.addEventListener('click',()=>{T.running?tPause():tStart();updateLsTimer();renderLandscape();});
+  lap.addEventListener('click',()=>{
+    if(T.running){tLap();}else if(T.base>0){tReset();}
+    renderLandscape();
+  });
+  btns.appendChild(lap);btns.appendChild(play);
+  wrap.appendChild(disp);wrap.appendChild(cent);wrap.appendChild(btns);
+  // Rest indicator
+  if(R.active){
+    const rest=el('div','');rest.style.cssText='font-size:12px;font-weight:600;color:var(--accent);padding:4px 12px;background:var(--accent-s);border-radius:var(--r-full)';
+    rest.textContent='Resting…';wrap.appendChild(rest);
+  }
+  right.appendChild(wrap);
+}
+
+// Orientation change listener
+function onResize(){
+  if(isLandscape()){renderLandscape();}
+  else{lsHide();}
+}
+window.addEventListener('resize',onResize);
+window.addEventListener('orientationchange',()=>setTimeout(onResize,150));
+
 async function init(){
   loadCfg();loadLocal();applyAll();render();
+  // Check landscape on startup
+  if(isLandscape())renderLandscape();
   if(!hasSupa()||!navigator.onLine)return;
   const row=await supaLoad();
   if(!row){
