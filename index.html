@@ -138,7 +138,17 @@ input,select{font-family:inherit}
 .sec-collapse-btn:active{background:var(--s3);transform:scale(.85)}
 .sec-collapse-btn .mi{transition:transform .32s var(--spring)}
 .sec-collapse-btn.open .mi{transform:rotate(180deg)}
-/* ── LANDSCAPE SPLIT VIEW ────────────────────────────────────────────── */
+/* ── EXERCISE SEARCH ─────────────────────────────────────────────────── */
+.ex-search-wrap{position:relative;margin-bottom:10px}
+.ex-search-in{width:100%;background:var(--s2);border:none;border-radius:var(--r-lg);padding:11px 16px 11px 40px;color:var(--text);font-size:15px;outline:none;-webkit-appearance:none;font-family:var(--font);transition:box-shadow var(--dur)}
+.ex-search-in:focus{box-shadow:0 0 0 2px var(--accent)}
+.ex-search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--t3);pointer-events:none;font-size:18px}
+.ex-lib-list{max-height:180px;overflow-y:auto;margin-bottom:10px;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:3px}
+.ex-lib-item{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:var(--r-lg);cursor:pointer;transition:background var(--dur)}
+.ex-lib-item:active{background:var(--accent-s)}
+.ex-lib-name{font-size:14px;font-weight:500;color:var(--text)}
+.ex-lib-group{font-size:11px;font-weight:600;color:var(--t3);background:var(--s3);border-radius:var(--r-full);padding:2px 8px}
+.ex-lib-empty{padding:20px;text-align:center;color:var(--t3);font-size:13px}
 .ls-ov{display:none;position:fixed;inset:0;z-index:150;background:var(--bg);flex-direction:row;overflow:hidden}
 .ls-left{width:42%;display:flex;flex-direction:column;border-right:1px solid var(--div);overflow:hidden}
 .ls-right{flex:1;display:flex;flex-direction:column;overflow:hidden}
@@ -684,12 +694,15 @@ body.em .add-cat-row{display:flex}
 <div class="overlay center-wrap" id="addExModal">
   <div class="modal-box glass-el">
     <div class="modal-title">Add Exercise</div>
-    <div class="modal-sub">Name it and pick a category</div>
-    <input class="modal-in" id="addExIn" type="text" placeholder="e.g. Bulgarian Split Squat" maxlength="60" autocomplete="off">
+    <div class="ex-search-wrap">
+      <span class="mi ex-search-ico">search</span>
+      <input class="ex-search-in" id="addExIn" type="text" placeholder="Search or type custom name…" maxlength="60" autocomplete="off">
+    </div>
+    <div class="ex-lib-list" id="exLibList"></div>
     <select class="modal-sel" id="addExCat"></select>
     <div class="modal-btns">
       <button class="mbtn mbtn-c"  id="addExCancel">Cancel</button>
-      <button class="mbtn mbtn-ok" id="addExOk">Add</button>
+      <button class="mbtn mbtn-ok" id="addExOk">Add Custom</button>
     </div>
     <button class="import-from-plan-btn" id="addExImportBtn"><span class="mi">content_copy</span> Import from another plan</button>
   </div>
@@ -939,9 +952,20 @@ function stepWeight(kgVal,delta){
    PROGRESS LOGIC
 ═══════════════════════════════════════════════════════════════════════ */
 // Normalise a set value — old format is a plain number, new is {w,r}
-function normSet(s,fallbackW){return(typeof s==='object'&&s!==null)?s:{w:fallbackW,r:s};}
-// Get the top weight used in a history entry
-function sessionMaxW(h){return Math.max(...h.sets.map(s=>normSet(s,h.w).w));}
+function normSet(s,fallbackW){
+  const fw=normalizeKg(fallbackW)||0;
+  if(typeof s==='object'&&s!==null){
+    const w=normalizeKg(s.w??fw)||fw;
+    const r=Math.max(1,Math.min(30,parseInt(s.r)||1));
+    return{w,r};
+  }
+  return{w:fw,r:Math.max(1,Math.min(30,parseInt(s)||1))};
+}
+function sessionMaxW(h){
+  if(!h.sets?.length)return normalizeKg(h.w)||0;
+  const vals=h.sets.map(s=>normSet(s,h.w).w).filter(w=>w>0&&isFinite(w));
+  return vals.length?Math.max(...vals):normalizeKg(h.w)||0;
+}
 function isReady(ex){
   if(!ex.history?.length)return false;
   const prev=ex.history.filter(h=>!isToday(h.date));
@@ -1386,6 +1410,58 @@ function buildBWChart(log,W,H){
   return svg;
 }
 
+// ── EXERCISE LIBRARY ─────────────────────────────────────────────────
+const EX_LIBRARY=[
+  // Chest
+  {n:'Barbell Bench Press',g:'Chest'},{n:'Incline Barbell Press',g:'Chest'},{n:'Decline Barbell Press',g:'Chest'},
+  {n:'Dumbbell Bench Press',g:'Chest'},{n:'Incline Dumbbell Press',g:'Chest'},{n:'Cable Fly',g:'Chest'},
+  {n:'Pec Deck',g:'Chest'},{n:'Push-Up',g:'Chest'},{n:'Chest Dip',g:'Chest'},
+  // Back
+  {n:'Deadlift',g:'Back'},{n:'Pull-Up',g:'Back'},{n:'Chin-Up',g:'Back'},{n:'Lat Pulldown',g:'Back'},
+  {n:'Seated Cable Row',g:'Back'},{n:'Bent-Over Row',g:'Back'},{n:'T-Bar Row',g:'Back'},
+  {n:'Face Pull',g:'Back'},{n:'Single-Arm Dumbbell Row',g:'Back'},{n:'Rack Pull',g:'Back'},
+  {n:'Straight-Arm Pulldown',g:'Back'},{n:'Meadows Row',g:'Back'},
+  // Shoulders
+  {n:'Overhead Press',g:'Shoulders'},{n:'Seated Dumbbell Press',g:'Shoulders'},{n:'Arnold Press',g:'Shoulders'},
+  {n:'Lateral Raise',g:'Shoulders'},{n:'Cable Lateral Raise',g:'Shoulders'},{n:'Front Raise',g:'Shoulders'},
+  {n:'Rear Delt Fly',g:'Shoulders'},{n:'Rear Delt Machine',g:'Shoulders'},{n:'Upright Row',g:'Shoulders'},{n:'Shrug',g:'Shoulders'},
+  // Biceps
+  {n:'Barbell Curl',g:'Biceps'},{n:'Dumbbell Curl',g:'Biceps'},{n:'Hammer Curl',g:'Biceps'},
+  {n:'Preacher Curl',g:'Biceps'},{n:'Incline Dumbbell Curl',g:'Biceps'},{n:'Cable Curl',g:'Biceps'},
+  {n:'Concentration Curl',g:'Biceps'},{n:'EZ Bar Curl',g:'Biceps'},
+  // Triceps
+  {n:'Close-Grip Bench Press',g:'Triceps'},{n:'Tricep Pushdown',g:'Triceps'},{n:'Skull Crusher',g:'Triceps'},
+  {n:'Overhead Tricep Extension',g:'Triceps'},{n:'Tricep Dip',g:'Triceps'},{n:'Tricep Kickback',g:'Triceps'},
+  {n:'Cable Overhead Extension',g:'Triceps'},
+  // Legs
+  {n:'Squat',g:'Legs'},{n:'Front Squat',g:'Legs'},{n:'Leg Press',g:'Legs'},{n:'Romanian Deadlift',g:'Legs'},
+  {n:'Leg Extension',g:'Legs'},{n:'Leg Curl',g:'Legs'},{n:'Seated Leg Curl',g:'Legs'},
+  {n:'Lunge',g:'Legs'},{n:'Bulgarian Split Squat',g:'Legs'},{n:'Hack Squat',g:'Legs'},
+  {n:'Calf Raise',g:'Legs'},{n:'Seated Calf Raise',g:'Legs'},{n:'Hip Thrust',g:'Legs'},{n:'Sumo Deadlift',g:'Legs'},
+  {n:'Step-Up',g:'Legs'},{n:'Leg Abduction',g:'Legs'},{n:'Leg Adduction',g:'Legs'},
+  // Core
+  {n:'Plank',g:'Core'},{n:'Cable Crunch',g:'Core'},{n:'Hanging Leg Raise',g:'Core'},
+  {n:'Ab Wheel',g:'Core'},{n:'Russian Twist',g:'Core'},{n:'Decline Crunch',g:'Core'},
+  {n:'Sit-Up',g:'Core'},{n:'Side Plank',g:'Core'},{n:'Dragon Flag',g:'Core'},
+  // Cardio / Other
+  {n:'Treadmill',g:'Cardio'},{n:'Cycling',g:'Cardio'},{n:'Rowing Machine',g:'Cardio'},
+  {n:'Jump Rope',g:'Cardio'},{n:'Stair Climber',g:'Cardio'},
+];
+
+// ── 1RM ESTIMATOR (Epley) ────────────────────────────────────────────
+function est1RM(ex){
+  if(!ex.history?.length)return null;
+  let best=0;
+  ex.history.forEach(h=>{
+    h.sets.forEach(s=>{
+      const {w,r}=normSet(s,h.w);
+      const wkg=fromKg(w); // display unit
+      if(r>0){const rm=wkg*(1+r/30);if(rm>best)best=rm;}
+    });
+  });
+  return best>0?Math.round(best*10)/10:null;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    HOURGLASS ANIMATION ENGINE
 ═══════════════════════════════════════════════════════════════════════ */
@@ -1508,15 +1584,18 @@ function isToday(dateStr){
 
 function openSession(exId){
   const ex=AP().exs.find(e=>e.id===exId);if(!ex)return;
-  sessExId=exId;sessEditMode=false;sessWeight=ex.w;
-  const last=ex.history?.length?ex.history[ex.history.length-1]:null;
-  if(last){
-    // Migrate old format on the fly
+  sessExId=exId;sessEditMode=false;
+  // Use prev-day history to seed (not today's)
+  const last=ex.history?.filter(h=>!isToday(h.date)).at(-1)||null;
+  const safeW=w=>{const n=normalizeKg(w);return(n>0&&isFinite(n))?n:0;};
+  sessWeight=safeW(last?sessionMaxW(last):ex.w);
+  if(last?.sets?.length){
     sessSets=last.sets.map(s=>({...normSet(s,last.w)}));
-    // Seed sessWeight from top weight of last session
-    sessWeight=sessionMaxW(last);
+    // Ensure all set weights are valid
+    sessSets=sessSets.map(s=>({w:safeW(s.w)||sessWeight,r:Math.max(1,Math.min(30,s.r))}));
   } else {
-    sessSets=[{w:sessWeight,r:S.repMin},{w:sessWeight,r:S.repMin},{w:sessWeight,r:S.repMin}];
+    const w=sessWeight||0;
+    sessSets=[{w,r:S.repMin},{w,r:S.repMin},{w,r:S.repMin}];
   }
   $('ssTitle').textContent=ex.name;
   $('ssSub').textContent=lastLabel(ex)||'No previous sessions';
@@ -1524,14 +1603,16 @@ function openSession(exId){
   $('ssProgTxt').textContent=`All sets hit ${S.repMax} — ready to go up!`;
   $('ssSave').innerHTML=`<span class="mi">check</span> Save Session`;
   updateSessWeight();
-  if(last?.sets?.length){
+  // Ghost: show last session (including today's if exists)
+  const ghost=ex.history?.at(-1);
+  if(ghost?.sets?.length){
     $('ssGhost').classList.remove('hidden');
-    $('ssGhostSets').innerHTML=last.sets.map(s=>{
-      const ns=normSet(s,last.w);
+    $('ssGhostSets').innerHTML=ghost.sets.map(s=>{
+      const ns=normSet(s,ghost.w);
       return`<div class="ghost-chip${ns.r>=S.repMax?' hit':''}"><span>${ns.r}r</span><span class="ghost-chip-w">${fmtW(ns.w)}</span></div>`;
     }).join('');
   }else{$('ssGhost').classList.add('hidden');}
-  renderSessSets();
+  renderSessSets();updateSessProg();
   $('sessOverlay').classList.add('open');
   setTimeout(()=>$('ssSets').scrollTop=0,50);
 }
@@ -1541,8 +1622,9 @@ function openEditSession(exId){
   const last=ex.history?.length?ex.history[ex.history.length-1]:null;
   if(!last||!isToday(last.date)){showToast('Can only edit today\'s session');return;}
   sessExId=exId;sessEditMode=true;
-  sessSets=last.sets.map(s=>({...normSet(s,last.w)}));
-  sessWeight=sessionMaxW(last);
+  const safeW=w=>{const n=normalizeKg(w);return(n>0&&isFinite(n))?n:0;};
+  sessSets=last.sets.map(s=>{const ns=normSet(s,last.w);return{w:safeW(ns.w)||safeW(last.w)||0,r:Math.max(1,Math.min(30,ns.r))};});
+  sessWeight=safeW(sessionMaxW(last))||safeW(last.w)||0;
   $('ssTitle').textContent=ex.name;
   $('ssSub').textContent='Editing today\'s session';
   $('ssProg').classList.remove('show');
@@ -1598,11 +1680,16 @@ function renderSessSets(){
     up.addEventListener('click',()=>{sessSets[i].r=Math.min(30,sessSets[i].r+1);setRepsState(vnum,vhint,sessSets[i].r);haptic([28]);});
     ctrl.appendChild(down);ctrl.appendChild(vwrap);ctrl.appendChild(up);
     const del=el('button','set-del');del.innerHTML=mi('delete');
-    del.addEventListener('click',()=>{sessSets.splice(i,1);renderSessSets();});
+    del.addEventListener('click',()=>{sessSets.splice(i,1);renderSessSets();updateSessProg();});
     row.appendChild(num);row.appendChild(wchip);row.appendChild(ctrl);row.appendChild(del);
     row.style.animation='setRowIn .28s var(--spring) forwards';
     container.insertBefore(row,addBtn);
   });
+}
+function updateSessProg(){
+  const allMax=sessSets.length>0&&sessSets.every(s=>s.r>=S.repMax);
+  const prog=$('ssProg');
+  if(prog)prog.classList.toggle('show',allMax);
 }
 function setRepsState(vnum,vhint,r){
   vnum.textContent=r;
@@ -1610,6 +1697,7 @@ function setRepsState(vnum,vhint,r){
   if(r>=S.repMax){vnum.classList.add('hit');vhint.classList.add('hit');vhint.textContent='Max — go up!';}
   else if(r>=S.repMin){vnum.classList.add('ok');vhint.classList.add('ok');vhint.textContent='In range';}
   else{vhint.textContent='Below target';}
+  updateSessProg();
 }
 
 $('ssAddSet').addEventListener('click',()=>{
@@ -1620,9 +1708,13 @@ $('ssAddSet').addEventListener('click',()=>{
 });
 $('ssSave').addEventListener('click',()=>{
   const ex=AP().exs.find(e=>e.id===sessExId);if(!ex)return;
-  const valid=sessSets.filter(s=>s.r>0).map(s=>({w:normalizeKg(s.w),r:Math.max(1,Math.min(30,Math.round(s.r)))}));
+  const valid=sessSets
+    .filter(s=>s.r>0)
+    .map(s=>({w:normalizeKg(s.w),r:Math.max(1,Math.min(30,Math.round(s.r)))}))
+    .filter(s=>isFinite(s.w));
   if(!valid.length){$('sessOverlay').classList.remove('open');return;}
-  ex.w=valid.reduce((m,s)=>s.w>m?s.w:m,0);
+  const maxW=valid.reduce((m,s)=>s.w>m?s.w:m,0);
+  ex.w=maxW>0?maxW:(ex.w||0);
   if(sessEditMode&&ex.history.length){
     ex.history[ex.history.length-1]={...ex.history[ex.history.length-1],w:ex.w,sets:valid.map(s=>({w:s.w,r:s.r}))};
     save();render();$('sessOverlay').classList.remove('open');
@@ -2065,20 +2157,60 @@ $('txtIn').addEventListener('keydown',e=>{if(e.key==='Enter')closeTxt(true);});
 // Add exercise modal
 const addExModal=$('addExModal');
 let _addExCatId='';
+
+function renderExLibList(query){
+  const list=$('exLibList');list.innerHTML='';
+  const q=query.trim().toLowerCase();
+  // Filter library — if empty show top 12, else search all
+  const matches=q?EX_LIBRARY.filter(e=>e.n.toLowerCase().includes(q)||e.g.toLowerCase().includes(q)):EX_LIBRARY.slice(0,12);
+  if(!matches.length){
+    const empty=el('div','ex-lib-empty');empty.textContent=q?`No matches — tap "Add Custom" to add "${query}"`:' ';
+    list.appendChild(empty);return;
+  }
+  matches.slice(0,30).forEach(lib=>{
+    const item=el('div','ex-lib-item');
+    const name=el('div','ex-lib-name');name.textContent=lib.n;
+    const grp=el('div','ex-lib-group');grp.textContent=lib.g;
+    item.appendChild(name);item.appendChild(grp);
+    item.addEventListener('click',()=>{
+      const catId=$('addExCat').value||_addExCatId;
+      if(!catId)return;
+      AP().exs.push({id:uid(),catId,name:lib.n,w:0,history:[]});
+      save();render();showToast('Added: '+lib.n);
+      closeAddEx(false);
+    });
+    list.appendChild(item);
+  });
+}
+
 function openAddExModal(defCatId){
   _addExCatId=defCatId;
   $('addExIn').value='';
   const sel=$('addExCat');sel.innerHTML='';
-  AP().cats.forEach(cat=>{const day=AP().days.find(d=>d.id===cat.dayId);const opt=document.createElement('option');opt.value=cat.id;opt.textContent=cat.name+(day?' · '+day.name:'');if(cat.id===defCatId)opt.selected=true;sel.appendChild(opt);});
-  oOpen(addExModal);setTimeout(()=>$('addExIn').focus(),160);
+  AP().cats.forEach(cat=>{
+    const day=AP().days.find(d=>d.id===cat.dayId);
+    const opt=document.createElement('option');
+    opt.value=cat.id;
+    opt.textContent=cat.name+(day?' · '+day.name:'');
+    if(cat.id===defCatId)opt.selected=true;
+    sel.appendChild(opt);
+  });
+  renderExLibList('');
+  oOpen(addExModal);
+  setTimeout(()=>$('addExIn').focus(),160);
 }
+
 function closeAddEx(ok){
-  if(ok){const name=$('addExIn').value.trim(),catId=$('addExCat').value;if(name&&catId){AP().exs.push({id:uid(),catId,name,w:0,history:[]});save();render();showToast('Added: '+name);}}
+  if(ok){
+    const name=$('addExIn').value.trim(),catId=$('addExCat').value;
+    if(name&&catId){AP().exs.push({id:uid(),catId,name,w:0,history:[]});save();render();showToast('Added: '+name);}
+  }
   oClose(addExModal);
 }
 $('addExOk').addEventListener('click',()=>closeAddEx(true));
 $('addExCancel').addEventListener('click',()=>closeAddEx(false));
 addExModal.addEventListener('click',e=>{if(e.target===addExModal)closeAddEx(false);});
+$('addExIn').addEventListener('input',()=>renderExLibList($('addExIn').value));
 $('addExIn').addEventListener('keydown',e=>{if(e.key==='Enter')closeAddEx(true);});
 $('addExImportBtn').addEventListener('click',()=>{
   const catId=$('addExCat').value||_addExCatId;
@@ -2274,6 +2406,26 @@ function renderChartsTab(body){
         item.appendChild(dot);item.appendChild(lbl);legend.appendChild(item);
       });
       body2.appendChild(legend);
+      // 1RM estimates
+      const hasRM=chartData.active.some(ex=>est1RM(ex)!==null);
+      if(hasRM){
+        const rmRow=el('div','');
+        rmRow.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--div)';
+        const rmLbl=el('div','');rmLbl.style.cssText='width:100%;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--t3);margin-bottom:2px';
+        rmLbl.textContent='Est. 1-Rep Max';
+        rmRow.appendChild(rmLbl);
+        chartData.active.forEach((ex,ei)=>{
+          const rm=est1RM(ex);if(rm===null)return;
+          const color=CHART_COLORS[ei%CHART_COLORS.length];
+          const chip=el('div','');
+          chip.style.cssText=`display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--r-full);background:var(--s2);font-size:12px;font-weight:600`;
+          const dot=el('div','');dot.style.cssText=`width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0`;
+          chip.appendChild(dot);
+          chip.appendChild(document.createTextNode(`${ex.name}  ${rm} ${S.unit}`));
+          rmRow.appendChild(chip);
+        });
+        body2.appendChild(rmRow);
+      }
     }
 
     let open=false;
@@ -2520,6 +2672,10 @@ function renderSettings(){
   addSec(body,'Data');const dataCard=lastCard(body);
   const expBtn=el('button','sp-action accent');expBtn.innerHTML=mi('download')+' Export Backup (.json)';expBtn.addEventListener('click',exportData);
   dataCard.appendChild(expBtn);
+  const csvRow=el('div','');csvRow.style.borderTop='1px solid var(--div)';
+  const csvBtn=el('button','sp-action accent');csvBtn.innerHTML=mi('table_chart')+' Export History (.csv)';
+  csvBtn.addEventListener('click',exportCSV);
+  csvRow.appendChild(csvBtn);dataCard.appendChild(csvRow);
   const ir=el('div','');ir.style.borderTop='1px solid var(--div)';
   const impBtn=el('button','sp-action');impBtn.innerHTML=mi('upload')+' Import Backup';impBtn.addEventListener('click',()=>$('importFile').click());
   ir.appendChild(impBtn);dataCard.appendChild(ir);
@@ -2610,6 +2766,37 @@ function exportData(){
   const url=URL.createObjectURL(blob);const a=document.createElement('a');
   a.href=url;a.download=`qorvexa-backup-${new Date().toISOString().slice(0,10)}.json`;
   a.click();URL.revokeObjectURL(url);showToast('✓ Backup exported');
+}
+
+function exportCSV(){
+  const rows=[['Plan','Day','Category','Exercise','Date','Set','Weight ('+S.unit+')','Reps']];
+  S.plans.forEach(plan=>{
+    plan.exs.forEach(ex=>{
+      const cat=plan.cats.find(c=>c.id===ex.catId);
+      const day=plan.days.find(d=>d.id===cat?.dayId);
+      ex.history.forEach(h=>{
+        h.sets.forEach((s,si)=>{
+          const {w,r}=normSet(s,h.w);
+          const dispW=S.unit==='lbs'?Math.round(w*2.20462*10)/10:Math.round(w*100)/100;
+          rows.push([
+            plan.name,
+            day?.name||'',
+            cat?.name||'',
+            ex.name,
+            h.date.slice(0,10),
+            si+1,
+            dispW,
+            r
+          ]);
+        });
+      });
+    });
+  });
+  const csv=rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download=`qorvexa-history-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();URL.revokeObjectURL(url);showToast('✓ CSV exported');
 }
 let _pendingImport=null; // holds parsed plan data waiting for target selection
 const importTargetSheet=$('importTargetSheet');
