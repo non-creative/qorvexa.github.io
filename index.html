@@ -201,6 +201,23 @@ input,select{font-family:inherit}
 .ls-tbtn{width:46px;height:46px;border-radius:50%;background:var(--s2);color:var(--text);display:flex;align-items:center;justify-content:center;transition:transform .18s var(--spring)}
 .ls-tbtn:active{transform:scale(.86)}
 .ls-tbtn.pri{background:var(--accent);color:#fff;width:54px;height:54px}
+/* ── WEEKLY VOLUME ───────────────────────────────────────────────────── */
+.weekly-card{margin:14px 14px 0;background:var(--s1);border-radius:var(--r-xl);overflow:hidden}
+.weekly-hdr{display:flex;align-items:center;padding:16px 18px;gap:8px}
+.weekly-title{flex:1;font-size:15px;font-weight:700;color:var(--text)}
+.weekly-nav{display:flex;align-items:center;gap:4px}
+.weekly-nav-btn{width:30px;height:30px;border-radius:var(--r-full);background:var(--s2);color:var(--t2);display:flex;align-items:center;justify-content:center;transition:background var(--dur)}
+.weekly-nav-btn:disabled{opacity:.3;pointer-events:none}
+.weekly-nav-btn:active{background:var(--s3)}
+.weekly-lbl{font-size:12px;font-weight:600;color:var(--t2);min-width:96px;text-align:center}
+.weekly-body{padding:6px 18px 18px;border-top:1px solid var(--div)}
+.weekly-empty{padding:24px 0;text-align:center;font-size:13px;color:var(--t3)}
+.weekly-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.weekly-row-lbl{font-size:12px;font-weight:600;color:var(--text);width:82px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.weekly-bar-wrap{flex:1;height:20px;background:var(--s2);border-radius:var(--r-full);overflow:hidden}
+.weekly-bar{height:100%;border-radius:var(--r-full);min-width:4px;transition:width .42s var(--spring-soft)}
+.weekly-count{font-size:12px;font-weight:700;color:var(--t2);width:34px;text-align:right;flex-shrink:0}
+.weekly-total{font-size:11px;font-weight:600;color:var(--t3);text-align:right;padding-top:8px;border-top:1px solid var(--div);margin-top:6px}
 /* ── EDIT BANNER ENTER ───────────────────────────────────────────────── */
 body.em .edit-banner{animation:fadeUp .3s var(--spring)}
 .edit-banner{display:none;text-align:center;background:var(--amber-s);padding:10px;font-size:12px;font-weight:700;letter-spacing:.4px;color:var(--amber)}
@@ -1532,17 +1549,14 @@ function isToday(dateStr){
 function openSession(exId){
   const ex=AP().exs.find(e=>e.id===exId);if(!ex)return;
   sessExId=exId;sessEditMode=false;
-  // Use prev-day history to seed (not today's)
-  const last=ex.history?.filter(h=>!isToday(h.date)).at(-1)||null;
   const safeW=w=>{const n=normalizeKg(w);return(n>0&&isFinite(n))?n:0;};
-  sessWeight=safeW(last?sessionMaxW(last):ex.w);
-  if(last?.sets?.length){
-    sessSets=last.sets.map(s=>({...normSet(s,last.w)}));
-    // Ensure all set weights are valid
-    sessSets=sessSets.map(s=>({w:safeW(s.w)||sessWeight,r:Math.max(1,Math.min(30,s.r))}));
-  } else {
-    const w=sessWeight||0;
-    sessSets=[{w,r:S.repMin},{w,r:S.repMin},{w,r:S.repMin}];
+  // Always seed weight from the most recent session (today or not) — prevents weight going lower
+  const allLast=ex.history?.at(-1)||null;
+  sessWeight=safeW(allLast?sessionMaxW(allLast):ex.w)||safeW(ex.w)||0;
+  if(allLast?.sets?.length){
+    sessSets=allLast.sets.map(s=>{const ns=normSet(s,allLast.w);return{w:safeW(ns.w)||sessWeight,r:Math.max(1,Math.min(30,ns.r))};});
+  }else{
+    sessSets=[{w:sessWeight,r:S.repMin},{w:sessWeight,r:S.repMin},{w:sessWeight,r:S.repMin}];
   }
   $('ssTitle').textContent=ex.name;
   $('ssSub').textContent=lastLabel(ex)||'No previous sessions';
@@ -1550,12 +1564,10 @@ function openSession(exId){
   $('ssProgTxt').textContent=`All sets hit ${S.repMax} — ready to go up!`;
   $('ssSave').innerHTML=`<span class="mi">check</span> Save Session`;
   updateSessWeight();
-  // Ghost: show last session (including today's if exists)
-  const ghost=ex.history?.at(-1);
-  if(ghost?.sets?.length){
+  if(allLast?.sets?.length){
     $('ssGhost').classList.remove('hidden');
-    $('ssGhostSets').innerHTML=ghost.sets.map(s=>{
-      const ns=normSet(s,ghost.w);
+    $('ssGhostSets').innerHTML=allLast.sets.map(s=>{
+      const ns=normSet(s,allLast.w);
       return`<div class="ghost-chip${ns.r>=S.repMax?' hit':''}"><span>${ns.r}r</span><span class="ghost-chip-w">${fmtW(ns.w)}</span></div>`;
     }).join('');
   }else{$('ssGhost').classList.add('hidden');}
@@ -2291,6 +2303,84 @@ function buildDayChart(exs,W,H){
   return{svg,active};
 }
 
+// ── WEEKLY VOLUME HELPERS ─────────────────────────────────────────────
+function getWeekStart(offset){
+  const d=new Date();
+  const day=d.getDay();
+  const diff=day===0?-6:1-day; // Monday=0
+  d.setDate(d.getDate()+diff+offset*7);
+  d.setHours(0,0,0,0);
+  return d;
+}
+function fmtWeekLabel(start){
+  const end=new Date(start);end.setDate(end.getDate()+6);
+  const opts={month:'short',day:'numeric'};
+  return start.toLocaleDateString('en',opts)+' – '+end.toLocaleDateString('en',opts);
+}
+function getWeekSets(weekStart){
+  const weekEnd=new Date(weekStart);weekEnd.setDate(weekEnd.getDate()+7);
+  const plan=AP();
+  const groups={};
+  plan.exs.forEach(ex=>{
+    const cat=plan.cats.find(c=>c.id===ex.catId);
+    if(!cat)return;
+    ex.history.forEach(h=>{
+      const d=new Date(h.date);
+      if(d>=weekStart&&d<weekEnd){
+        groups[cat.name]=(groups[cat.name]||0)+h.sets.filter(s=>normSet(s,h.w).r>0).length;
+      }
+    });
+  });
+  return groups;
+}
+let _weekOffset=0;
+function renderWeeklyCard(container){
+  // Remove existing
+  const old=container.querySelector('.weekly-card');if(old)old.remove();
+  const card=el('div','weekly-card');
+  const hdr=el('div','weekly-hdr');
+  const title=el('div','weekly-title');title.textContent='Sets by Muscle Group';
+  const nav=el('div','weekly-nav');
+  const prev=el('button','weekly-nav-btn');prev.innerHTML=mi('chevron_left');
+  const lbl=el('div','weekly-lbl');
+  const next=el('button','weekly-nav-btn');next.innerHTML=mi('chevron_right');
+  next.disabled=_weekOffset>=0;
+  const weekStart=getWeekStart(_weekOffset);
+  lbl.textContent=fmtWeekLabel(weekStart);
+  const groups=getWeekSets(weekStart);
+  const entries=Object.entries(groups).sort((a,b)=>b[1]-a[1]);
+  const maxSets=entries.length?entries[0][1]:1;
+  const totalSets=entries.reduce((s,[,v])=>s+v,0);
+  prev.addEventListener('click',()=>{_weekOffset--;renderWeeklyCard(container);});
+  next.addEventListener('click',()=>{if(_weekOffset<0){_weekOffset++;renderWeeklyCard(container);}});
+  nav.appendChild(prev);nav.appendChild(lbl);nav.appendChild(next);
+  hdr.appendChild(title);hdr.appendChild(nav);
+  const body=el('div','weekly-body');
+  if(!entries.length){
+    const empty=el('div','weekly-empty');empty.textContent='No sessions this week';
+    body.appendChild(empty);
+  }else{
+    const MUSCLE_COLORS={'Chest':'#fb7185','Back':'#60a5fa','Shoulders':'#a78bfa','Biceps':'#34d399','Triceps':'#f97316','Legs':'#facc15','Core':'#22d3ee','Cardio':'#94a3b8'};
+    entries.forEach(([name,count])=>{
+      const row=el('div','weekly-row');
+      const lbl2=el('div','weekly-row-lbl');lbl2.textContent=name;
+      const barWrap=el('div','weekly-bar-wrap');
+      const bar=el('div','weekly-bar');
+      const pct=Math.max(4,Math.round((count/maxSets)*100));
+      const color=MUSCLE_COLORS[name]||'var(--accent)';
+      bar.style.cssText=`width:${pct}%;background:${color};opacity:.85`;
+      const cnt=el('div','weekly-count');cnt.textContent=count+' set'+(count!==1?'s':'');
+      barWrap.appendChild(bar);
+      row.appendChild(lbl2);row.appendChild(barWrap);row.appendChild(cnt);
+      body.appendChild(row);
+    });
+    const tot=el('div','weekly-total');tot.textContent=`${totalSets} total sets this week`;
+    body.appendChild(tot);
+  }
+  card.appendChild(hdr);card.appendChild(body);
+  container.appendChild(card);
+}
+
 function renderChartsTab(body){
   body.innerHTML='';
 
@@ -2410,7 +2500,8 @@ function renderChartsTab(body){
 
     card.appendChild(hdr);card.appendChild(body2);body.appendChild(card);
   });
-  const pad=el('div','');pad.style.height='24px';body.appendChild(pad);
+  renderWeeklyCard(body);
+  {const pad=el('div','');pad.style.height='24px';body.appendChild(pad);}
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
