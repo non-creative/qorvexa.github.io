@@ -1180,7 +1180,7 @@ function tLap(){
 function updateTimerBtns(){
   const play=$('timerPlay'),lap=$('timerLap');
   if(play)play.innerHTML=mi(T.running?'pause':'play_arrow');
-  if(lap){lap.innerHTML=mi(T.running?'flag':T.base>0?'replay':'flag');lap.disabled=!T.running&&T.base===0;}
+  if(lap){lap.innerHTML=mi('replay');lap.disabled=T.running||T.base===0;}
 }
 function renderLaps(){
   const w=$('timerLapsWrap');if(!w)return;
@@ -1211,7 +1211,7 @@ function renderTimerScreen(container){
       <div id="timerCenti" class="timer-centi">${tCentis(elapsed)}</div>
       <div class="timer-status" id="timerStatus">${T.running?'Running…':T.base>0?'Paused':''}</div>
       <div class="timer-btns">
-        <button class="t-sec" id="timerLap" ${!T.running&&T.base===0?'disabled':''}>${mi(T.running?'flag':T.base>0?'replay':'flag')}</button>
+        <button class="t-sec" id="timerLap" ${T.running||T.base===0?'disabled':''}>${mi('replay')}</button>
         <button class="t-pri" id="timerPlay">${mi(T.running?'pause':'play_arrow')}</button>
       </div>
       <div id="wakeBadge" class="wake-badge ${wakeLock?'active':''}">
@@ -1246,11 +1246,8 @@ function renderTimerScreen(container){
     const s=$('timerStatus');if(s)s.textContent=T.running?'Running…':T.base>0?'Paused':'';
     const lw=$('timerLapsWrap');if(lw)lw.style.display=T.laps.length?'block':'none';
   });
-  $('timerLap').addEventListener('click',()=>{
-    if(T.running){tLap();const lw=$('timerLapsWrap');if(lw)lw.style.display='block';}
-    else if(T.base>0)tReset();
-  });
-  if(T.laps.length)renderLaps();
+  $('timerLap').addEventListener('click',()=>{tReset();});
+
   if(feat('restTimer')){
     $('restMinDown').addEventListener('click',()=>{S.restMins=Math.max(0,S.restMins-1);$('restMinVal').textContent=S.restMins;save();haptic([28]);});
     $('restMinUp').addEventListener('click',()=>{S.restMins=Math.min(10,S.restMins+1);$('restMinVal').textContent=S.restMins;save();haptic([28]);});
@@ -3182,14 +3179,11 @@ function renderLsTimer(right){
   updateLsTimer();
   if(T.running)requestAnimationFrame(updateLsTimer);
   const btns=el('div','ls-timer-btns');
-  const lap=el('button','ls-tbtn');lap.innerHTML=mi(T.running?'flag':T.base>0?'replay':'flag');
-  lap.disabled=(!T.running&&T.base===0);
+  const lap=el('button','ls-tbtn');lap.innerHTML=mi('replay');
+  lap.disabled=T.running||T.base===0;
   const play=el('button','ls-tbtn pri');play.innerHTML=mi(T.running?'pause':'play_arrow');
   play.addEventListener('click',()=>{T.running?tPause():tStart();updateLsTimer();renderLandscape();});
-  lap.addEventListener('click',()=>{
-    if(T.running){tLap();}else if(T.base>0){tReset();}
-    renderLandscape();
-  });
+  lap.addEventListener('click',()=>{tReset();renderLandscape();});
   btns.appendChild(lap);btns.appendChild(play);
   wrap.appendChild(disp);wrap.appendChild(cent);wrap.appendChild(btns);
   // Rest indicator
